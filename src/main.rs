@@ -20,11 +20,11 @@ async fn cors_proxy(req: HttpRequest, body: web::Bytes) -> Result<HttpResponse> 
     let client = Client::new();
 
     // Determine the HTTP method
-    let method = match req.method() {
-        &actix_web::http::Method::GET => reqwest::Method::GET,
-        &actix_web::http::Method::POST => reqwest::Method::POST,
-        &actix_web::http::Method::PUT => reqwest::Method::PUT,
-        &actix_web::http::Method::DELETE => reqwest::Method::DELETE,
+    let method = match *req.method() {
+        actix_web::http::Method::GET => reqwest::Method::GET,
+        actix_web::http::Method::POST => reqwest::Method::POST,
+        actix_web::http::Method::PUT => reqwest::Method::PUT,
+        actix_web::http::Method::DELETE => reqwest::Method::DELETE,
         _ => {
             return {
                 warn!("Bad request: not valid HTTP method specified");
