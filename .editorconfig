@@ -1,0 +1,23 @@
+root = true
+
+# Default to Unix-style line endings
+[*]
+end_of_line = lf
+
+# Set the tab width to 4 spaces
+[*.rs]
+indent_style = space
+indent_size = 4
+
+# Match all files in the ".vscode" directory
+[.vscode/**]
+indent_style = tab
+indent_size = 4
+
+# Ignore the ".env" file
+[.env]
+indent_style = unset
+
+# Ignore Markdown files
+[*.md]
+indent_style = unset
