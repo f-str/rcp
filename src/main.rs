@@ -77,6 +77,10 @@ async fn main() -> std::io::Result<()> {
         .map(|val| val.parse().unwrap_or(8080))
         .unwrap_or(8080);
 
+    let address = env::var("ADDRESS")
+        .unwrap_or("0.0.0.0".to_string())
+        .to_string();
+
     HttpServer::new(|| {
         App::new().service(
             web::resource("/{url:.+}")
@@ -86,7 +90,7 @@ async fn main() -> std::io::Result<()> {
                 .route(web::delete().to(cors_proxy)),
         )
     })
-    .bind(("127.0.0.1", port))?
+    .bind((address, port))?
     .run()
     .await
 }
