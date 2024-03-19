@@ -28,12 +28,15 @@ cargo build --release
 ```bash
 cargo run --release
 ```
-2. RCP will start listening on `127.0.0.1:8080` by default.
+
+2. RCP will start listening on `0.0.0.0:8080` by default.
+
 3. Make requests to the RCP server by replacing the original URL with the RCP URL.
 ```bash 
 http://localhost:8080/original-url
 ```
 For example, to proxy `https://api.example.com/data`, you would make a request to `http://localhost:8080/https://api.example.com/data`.
+
 4. RCP will forward the request to the original URL and return the response with the appropriate CORS headers.
 
 ## Configuration
@@ -42,6 +45,7 @@ RCP can be configured using environment variables:
 
 - `LOGGING_ENABLED`: Set to `"true"` to enable logging (default: `false`).
 - `PORT`: Set the port that RCP listens on (default: `8080`).
+- `ADDRESS`: Set the address that RCP listens on (default: `0.0.0.0`). 
 
 ## Contributing
 
