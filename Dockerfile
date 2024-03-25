@@ -1,5 +1,5 @@
 # Stage 1: Build the application
-FROM rust:latest as builder
+FROM rust:bookworm as builder
 
 WORKDIR /usr/src/app
 
@@ -14,7 +14,11 @@ RUN cargo build --release
 
 
 # Stage 2: Create a lightweight production image
-FROM alpine:latest
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get upgrade -y && apt-get install -y openssl
+
+RUN adduser --system --group rcp
 
 WORKDIR /usr/src/app
 
@@ -26,6 +30,9 @@ ENV LOGGING_ENABLED true
 
 # Expose the desired port
 EXPOSE 8080
+
+# Change the user to the non-root user
+USER rcp
 
 # Start the application
 CMD ["./rcp"]
