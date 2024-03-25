@@ -1,10 +1,9 @@
-name: Base CI/CD Pipeline
+name: Pull-Request Main CI/CD Pipeline
 
 on:
-  push:
-    branches-ignore:
+  pull_request:
+    branches:
       - 'main'
-  workflow_call:
 
 jobs:
   build:
@@ -34,4 +33,3 @@ jobs:
         run: cargo fmt -- --check
       - name: Clippy
         run: cargo clippy -- -D warnings
-
