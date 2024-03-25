@@ -1,70 +1,41 @@
-name: CI/CD Pipeline
+name: Main CI/CD Pipeline
 
 on:
   push:
     branches:
       - 'main'
-  pull_request:
-    branches:
-      - 'main'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      - name: Setup Rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-      - name: Build
-        run: cargo build --release
+  base:
+    uses: ./.github/workflows/base.yml
 
-  lint:
+  build-and-push-docker-image:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      - name: Setup Rust toolchain
-        uses: actions-rs/toolchain@v1
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
         with:
-          toolchain: stable
-          override: true
-      - name: Format check
-        run: cargo fmt -- --check
-      - name: Clippy
-        run: cargo clippy -- -D warnings
-
-  docker-build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      - name: Docker Build and Push
-        uses: docker/build-push-action@v2
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          tags: rcp
-
-  deploy:
-    needs: [ docker-build ]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v1
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Tag Docker Image
-        run: |
-          IMAGE_TAG=ghcr.io/${{ github.repository_owner }}/rcp:${{ github.sha }}
-          docker tag rcp $IMAGE_TAG
-          echo $IMAGE_TAG >> image_tag.txt
-      - name: Push Docker Image
-        run: |
-          IMAGE_TAG=$(cat image_tag.txt)
-          docker push $IMAGE_TAG
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
