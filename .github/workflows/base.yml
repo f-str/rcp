@@ -1,9 +1,6 @@
 name: Base CI/CD Pipeline
 
 on:
-  push:
-    branches-ignore:
-      - 'main'
   workflow_call:
 
 jobs:
