@@ -1,10 +1,23 @@
-use actix_web::{web, App, HttpRequest, HttpResponse, HttpServer, Result};
+use actix_web::{
+    web::{self, Data},
+    App, HttpRequest, HttpResponse, HttpServer, Result,
+};
 use env_logger::Builder;
 use log::{info, warn, LevelFilter};
 use reqwest::Client;
 use std::env;
+use url::Url;
 
-async fn cors_proxy(req: HttpRequest, body: web::Bytes) -> Result<HttpResponse> {
+#[derive(Clone, Debug)]
+struct Settings {
+    allowed_domains: Option<Vec<String>>,
+}
+
+async fn cors_proxy(
+    req: HttpRequest,
+    body: web::Bytes,
+    settings: Data<Settings>,
+) -> Result<HttpResponse> {
     let url = match req.match_info().get("url") {
         Some(url) => url,
         None => {
@@ -15,7 +28,23 @@ async fn cors_proxy(req: HttpRequest, body: web::Bytes) -> Result<HttpResponse> 
         }
     };
 
-    info!("Forwarding request to {}", url);
+    let parsed_url = match Url::parse(url) {
+        Ok(result) => result,
+        Err(err) => {
+            warn!("Can not parse url {:?}: {:}", url, err);
+            return Ok(HttpResponse::BadRequest().finish());
+        }
+    };
+
+    if let Some(allowed_domains) = &settings.allowed_domains {
+        let host = parsed_url.host_str().unwrap_or_default();
+        if !allowed_domains.contains(&host.to_string()) {
+            warn!("Forbidden request: host '{}' is not allowed", host);
+            return Ok(HttpResponse::Forbidden().finish());
+        }
+    }
+
+    info!("Forwarding request to {}", parsed_url);
 
     let client = Client::new();
 
@@ -35,7 +64,7 @@ async fn cors_proxy(req: HttpRequest, body: web::Bytes) -> Result<HttpResponse> 
 
     // Forward the request to the specified URL
     let response = client
-        .request(method, url)
+        .request(method, parsed_url)
         .body(body.to_vec())
         .send()
         .await
@@ -81,13 +110,20 @@ async fn main() -> std::io::Result<()> {
         .unwrap_or("0.0.0.0".to_string())
         .to_string();
 
-    HttpServer::new(|| {
+    let settings = Data::new(Settings {
+        allowed_domains: env::var("ALLOWED_DOMAINS")
+            .map(|val| Some(val.split(",").map(|domain| domain.to_string()).collect()))
+            .unwrap_or(None),
+    });
+
+    HttpServer::new(move || {
         App::new().service(
             web::resource("/{url:.+}")
                 .route(web::get().to(cors_proxy))
                 .route(web::post().to(cors_proxy))
                 .route(web::put().to(cors_proxy))
-                .route(web::delete().to(cors_proxy)),
+                .route(web::delete().to(cors_proxy))
+                .app_data(settings.clone()),
         )
     })
     .bind((address, port))?
