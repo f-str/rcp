@@ -16,7 +16,7 @@ RUN cargo build --release
 # Stage 2: Create a lightweight production image
 FROM debian:bookworm-slim
 
-RUN apt-get update && apt-get upgrade -y && apt-get install -y openssl
+RUN apt-get update && apt-get upgrade -y && apt-get install -y openssl ca-certificates
 
 RUN adduser --system --group rcp
 
